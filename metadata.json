@@ -1,0 +1,6 @@
+{
+  "name": "NeuraLex",
+  "description": "AI-powered modern dictionary with Gen Z translations and contextual explanations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
