@@ -9,28 +9,31 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
 
       - name: Cache Node Modules & NPM Cache
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
@@ -38,7 +41,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Cache Expo Cache
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         with:
           path: ~/.expo
           key: ${{ runner.os }}-expo-${{ hashFiles('**/eas.json') }}
@@ -69,6 +72,10 @@ jobs:
             echo "Skipping JS type-check: No type-check script found in package.json."
           fi
 
+      - name: Fix Corrupt Gradle Wrapper Jar
+        run: |
+          wget -qO gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar
+          
       - name: Run Android Lint (Native Check)
         run: |
           if [ -f gradlew ]; then
@@ -91,7 +98,7 @@ jobs:
           fi
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: NeuraLex-apk
           path: app/build/outputs/apk/debug/app-debug.apk
