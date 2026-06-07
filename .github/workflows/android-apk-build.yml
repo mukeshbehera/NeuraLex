@@ -8,10 +8,7 @@ on:
     branches:
       - main
   workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
+  
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -72,9 +69,12 @@ jobs:
             echo "Skipping JS type-check: No type-check script found in package.json."
           fi
 
-      - name: Fix Corrupt Gradle Wrapper Jar
+      - name: Fix Configs & Scripts
         run: |
-          wget -qO gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar
+          if [ -f gradlew ]; then
+            sed -i 's/\r$//' gradlew
+            chmod +x gradlew
+          fi
           
       - name: Run Android Lint (Native Check)
         run: |
