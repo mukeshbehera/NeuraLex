@@ -73,6 +73,9 @@ jobs:
 
       - name: Fix Configs & Scripts
         run: |
+          if [ -f debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
           if [ -f gradlew ]; then
             sed -i 's/\r$//' gradlew
             chmod +x gradlew
