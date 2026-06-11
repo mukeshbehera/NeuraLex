@@ -78,10 +78,19 @@ jobs:
             echo "Skipping JS type-check: No type-check script found in package.json."
           fi
 
-      - name: Fix Configs & Scripts
+      - name: Set up Gradle Wrapper & Debug Keystore
         run: |
-          if [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
+          # Generate debug keystore if not present (needed for validateSigningDebug)
+          if [ ! -f debug.keystore ]; then
+            keytool -genkey -v -keystore debug.keystore \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass android -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          # Restore gradle-wrapper.jar if not tracked in git
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            chmod +x gradlew
+            ./gradlew wrapper --gradle-version 9.3.1
           fi
           if [ -f gradlew ]; then
             sed -i 's/\r$//' gradlew
