@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Premium Rounded Square Background with a Rich Purple Gradient -->
+    <path
+        android:pathData="M 28,10 H 92 A 18,18 0 0 1 110,28 V 92 A 18,18 0 0 1 92,110 H 28 A 18,18 0 0 1 10,92 V 28 A 18,18 0 0 1 28,10 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="10"
+                android:startY="10"
+                android:endX="110"
+                android:endY="110"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#7B2CBF" /> <!-- Deep Royal Purple -->
+                <item android:offset="0.5" android:color="#6A0D91" /> <!-- Vibrant Dark Purple -->
+                <item android:offset="1.0" android:color="#3C096C" /> <!-- Rich Dark Plum/Indigo -->
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Glowing Inner Border / Outer Ring -->
+    <path
+        android:pathData="M 28,12 H 92 A 16,16 0 0 1 108,28 V 92 A 16,16 0 0 1 92,108 H 28 A 16,16 0 0 1 12,92 V 28 A 16,16 0 0 1 28,12 Z"
+        android:strokeWidth="1.5"
+        android:strokeColor="#50FFFFFF" /> <!-- Subtle White Ring -->
+
+    <!-- Dictionary-Inspired Stylized Ribbon Bookmark -->
+    <path
+        android:pathData="M 44,52 H 60 V 86 L 52,79 L 44,86 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="44"
+                android:startY="52"
+                android:endX="60"
+                android:endY="86"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#E0AAFF" /> <!-- Pastel Lilac -->
+                <item android:offset="1.0" android:color="#C77DFF" /> <!-- Vibrant Orchid -->
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Bold Modern Letter N with subtle gradient for depth -->
+    <path
+        android:pathData="M 40,36 H 52 V 76 H 40 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M 68,36 H 80 V 76 H 68 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M 50,36 L 68,72 V 76 H 68 L 50,40 Z"
+        android:fillColor="#F3E5F5" /> <!-- Soft Lavender-White transition for diagonal split depth -->
+
+    <!-- Elegant Gloss Highlight Line at the Top Area -->
+    <path
+        android:pathData="M 25,18 H 95"
+        android:strokeWidth="1"
+        android:strokeColor="#20FFFFFF" />
+
+</vector>

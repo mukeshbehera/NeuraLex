@@ -1,3 +1,8 @@
+import java.net.URL
+import java.io.InputStream
+import java.io.FileOutputStream
+import java.io.OutputStream
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
@@ -119,3 +124,54 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   // "ksp"(libs.moshi.kotlin.codegen)
 }
+
+tasks.register("downloadEnglishWords") {
+    val dir = file("src/main/assets/dictionary")
+    val outputFile = file("src/main/assets/dictionary/english_words.txt")
+    outputs.file(outputFile)
+    
+    doFirst {
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+    }
+    
+    doLast {
+        if (!outputFile.exists() || outputFile.length() == 0L) {
+            println("Downloading english_words.txt...")
+            try {
+                val url = URL("https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt")
+                val connection = url.openConnection()
+                connection.readTimeout = 20000
+                connection.connectTimeout = 20000
+                val input: InputStream = connection.getInputStream()
+                val output: OutputStream = FileOutputStream(outputFile)
+                val buffer = ByteArray(4096)
+                var bytesRead = input.read(buffer)
+                while (bytesRead != -1) {
+                    output.write(buffer, 0, bytesRead)
+                    bytesRead = input.read(buffer)
+                }
+                output.close()
+                input.close()
+                println("Download completed! File size: ${outputFile.length()} bytes")
+            } catch (e: Exception) {
+                println("Failed to download English wordlist: ${e.message}. Writing fallback list.")
+                val fallbackWords = listOf(
+                    "resilient", "dictionary", "computer", "beautiful", "vocabulary",
+                    "euphoria", "liminal", "pragmatic", "ephemeral", "nature", "blossom",
+                    "cherry", "bloom", "abandon", "ability", "able", "about", "above",
+                    "accept", "access", "accident", "run", "runs", "running", "ran",
+                    "work", "works", "worked", "working", "hello", "world", "serendipity",
+                    "happy", "sad", "good", "bad", "today", "yesterday", "tomorrow"
+                )
+                outputFile.writeText(fallbackWords.joinToString("\n"))
+            }
+        }
+    }
+}
+
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn("downloadEnglishWords")
+}
+

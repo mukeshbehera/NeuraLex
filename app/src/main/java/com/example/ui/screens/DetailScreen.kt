@@ -1,6 +1,11 @@
 package com.example.ui.screens
 
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 import android.widget.Toast
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +64,27 @@ fun DetailScreen(
 ) {
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
+
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    var isTtsReady by remember { mutableStateOf(false) }
+
+    DisposableEffect(context) {
+        var ttsInstance: TextToSpeech? = null
+        ttsInstance = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val result = ttsInstance?.setLanguage(Locale.US)
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    ttsInstance?.setLanguage(Locale.ENGLISH)
+                }
+                isTtsReady = true
+            }
+        }
+        tts = ttsInstance
+        onDispose {
+            ttsInstance.stop()
+            ttsInstance.shutdown()
+        }
+    }
 
     // Dynamic fallback to static mock WordObject if none is currently selected in app state
     val resolvedWord = wordObj ?: WordObject(
@@ -211,7 +237,11 @@ fun DetailScreen(
                     // audio play button
                     IconButton(
                         onClick = {
-                            Toast.makeText(context, "Playing pronunciation: ${resolvedWord.word}", Toast.LENGTH_SHORT).show()
+                            if (isTtsReady && tts != null) {
+                                tts?.speak(resolvedWord.word, TextToSpeech.QUEUE_FLUSH, null, null)
+                            } else {
+                                Toast.makeText(context, "TTS engine not ready yet", Toast.LENGTH_SHORT).show()
+                            }
                         },
                         modifier = Modifier
                             .size(52.dp)
@@ -551,11 +581,11 @@ fun DetailScreen(
                         onClick = {
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             val clip = android.content.ClipData.newPlainText(
-                                "Word Definition",
-                                "${resolvedWord.word} [${resolvedWord.pronunciation}] (${resolvedWord.type})\n\nMeaning: ${resolvedWord.meaning}\n\nExample: ${resolvedWord.exampleSentence}"
+                                "Word Meaning",
+                                resolvedWord.meaning
                             )
                             clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "Copied '${resolvedWord.word}' definition to clipboard!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Meaning copied", Toast.LENGTH_SHORT).show()
                         }
                     )
                     DetailActionItem(
@@ -567,7 +597,7 @@ fun DetailScreen(
                                     action = android.content.Intent.ACTION_SEND
                                     putExtra(
                                         android.content.Intent.EXTRA_TEXT,
-                                        "${resolvedWord.word} [${resolvedWord.pronunciation}] (${resolvedWord.type})\n\nMeaning: ${resolvedWord.meaning}\n\nExample: ${resolvedWord.exampleSentence}\n\nGen Z version:\n${resolvedWord.genZVersion}"
+                                        "${resolvedWord.word}:\n${resolvedWord.meaning}"
                                     )
                                     type = "text/plain"
                                 }

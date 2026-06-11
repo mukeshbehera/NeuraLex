@@ -249,55 +249,13 @@ fun WelcomeScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Pristine inner iOS-like white logo container
-                    Box(
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_neuralex_logo_vector),
+                        contentDescription = "NeuraLex Logo",
                         modifier = Modifier
-                            .size(92.dp)
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White,
-                                        Color.White.copy(alpha = 0.90f)
-                                    )
-                                )
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = Color.White.copy(alpha = 0.8f),
-                                shape = RoundedCornerShape(22.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            // Stylized bookmark banner ribbon behind/under character D
-                            Box(
-                                modifier = Modifier
-                                    .width(18.dp)
-                                    .height(30.dp)
-                                    .offset(x = (-8).dp, y = 18.dp)
-                                    .background(
-                                        color = PrimaryPurple,
-                                        shape = RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp)
-                                    )
-                            )
-                            
-                            // Character "D" matching the pristine logo style of Dictionary apps
-                            Text(
-                                text = "D",
-                                style = MaterialTheme.typography.displayLarge.copy(
-                                    color = PrimaryPurple,
-                                    fontSize = 52.sp,
-                                    fontWeight = FontWeight.Black,
-                                    textAlign = TextAlign.Center
-                                ),
-                                modifier = Modifier.offset(y = (-4).dp)
-                            )
-                        }
-                    }
+                            .size(96.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(28.dp))

@@ -45,4 +45,6 @@ class AppRepository(
     }
 
     suspend fun clearHistory() = searchHistoryDao.clearHistory()
+
+    suspend fun deleteHistoryEntry(query: String) = searchHistoryDao.deleteHistoryEntry(query)
 }

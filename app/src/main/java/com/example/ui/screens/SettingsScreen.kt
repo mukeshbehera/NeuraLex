@@ -34,6 +34,17 @@ import com.example.ui.theme.LightPurple
 import com.example.ui.theme.PrimaryPurple
 import com.example.ui.theme.SecondaryTextLight
 import com.example.ui.theme.SuccessGreen
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.content.ContentValues
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +60,27 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val jsonText = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.bufferedReader().use { it.readText() }
+                } ?: ""
+                
+                val result = onImportFavorites(jsonText)
+                if (result.first) {
+                    Toast.makeText(context, "Successfully imported", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "Import failed. Invalid file", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Import failed. Invalid file", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     var baseUrl by remember { mutableStateOf(uiState.baseUrl) }
     var apiKey by remember { mutableStateOf(uiState.apiKey) }
@@ -381,27 +413,21 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     val exportedJson = onExportFavorites()
-                                    if (exportedJson == "[]" || exportedJson.isEmpty()) {
-                                        Toast.makeText(context, "Export failed: No favorite words added yet.", Toast.LENGTH_LONG).show()
+                                    if (uiState.favorites.isEmpty() || exportedJson == "{}" || exportedJson.isEmpty()) {
+                                        Toast.makeText(context, "Export failed. Please try again.", Toast.LENGTH_LONG).show()
                                     } else {
                                         try {
-                                            // Copy to system clipboard for easy external sharing
-                                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            val clip = android.content.ClipData.newPlainText("Neuralex Favorites Backup", exportedJson)
-                                            clipboard.setPrimaryClip(clip)
-
-                                            // Save to local file in filesDir for app backup resilience
-                                            context.openFileOutput("favorites_backup.json", android.content.Context.MODE_PRIVATE).use {
-                                                it.write(exportedJson.toByteArray())
+                                            val sdf = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
+                                            val fileName = "NeuraLex_${sdf.format(Date())}.json"
+                                            
+                                            val success = exportJsonToDownloads(context, exportedJson, fileName)
+                                            if (success) {
+                                                Toast.makeText(context, "Successfully exported to Downloads", Toast.LENGTH_LONG).show()
+                                            } else {
+                                                Toast.makeText(context, "Export failed. Please try again.", Toast.LENGTH_LONG).show()
                                             }
-
-                                            Toast.makeText(
-                                                context,
-                                                "Successfully exported!\nData copied to Clipboard & saved to internal backup.",
-                                                Toast.LENGTH_LONG
-                                            ).show()
                                         } catch (e: Exception) {
-                                            Toast.makeText(context, "Export error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(context, "Export failed. Please try again.", Toast.LENGTH_LONG).show()
                                         }
                                     }
                                 }
@@ -448,65 +474,13 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     try {
-                                        var localFileContent = ""
-                                        // 1. Try reading the local backup file
-                                        try {
-                                            val backupFile = java.io.File(context.filesDir, "favorites_backup.json")
-                                            if (backupFile.exists() && backupFile.isFile) {
-                                                localFileContent = backupFile.readText()
-                                            }
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                        }
-
-                                        // 2. Try reading from system clipboard
-                                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                        val clipData = clipboard.primaryClip
-                                        val clipboardText = if (clipData != null && clipData.itemCount > 0) {
-                                            clipData.getItemAt(0).text?.toString() ?: ""
-                                        } else ""
-
-                                        val trimmedClipboard = clipboardText.trim()
-                                        val isClipboardJson = trimmedClipboard.startsWith("[") || trimmedClipboard.startsWith("{")
-
-                                        val source: String
-                                        val jsonToImport: String
-
-                                        if (isClipboardJson) {
-                                            source = "Clipboard backup"
-                                            jsonToImport = clipboardText
-                                        } else if (localFileContent.isNotEmpty()) {
-                                            source = "favorites_backup.json file"
-                                            jsonToImport = localFileContent
-                                        } else {
-                                            source = ""
-                                            jsonToImport = ""
-                                        }
-
-                                        if (jsonToImport.isEmpty()) {
-                                            Toast.makeText(
-                                                context,
-                                                "Import failed: No valid JSON backup found on Clipboard or local storage.\n\nPlease copy a favorites backup text to clipboard first or export beforehand.",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        } else {
-                                            val result = onImportFavorites(jsonToImport)
-                                            if (result.first) {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Successfully imported from $source!\n${result.second}",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            } else {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Error processing $source:\n${result.second}",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            }
-                                        }
+                                        filePickerLauncher.launch("application/json")
                                     } catch (e: Exception) {
-                                        Toast.makeText(context, "System import error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                        try {
+                                            filePickerLauncher.launch("*/*")
+                                        } catch (ex: Exception) {
+                                            Toast.makeText(context, "Import failed. Invalid file", Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 }
                                 .padding(horizontal = 18.dp, vertical = 14.dp),
@@ -547,6 +521,49 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+private fun exportJsonToDownloads(context: android.content.Context, jsonContent: String, fileName: String): Boolean {
+    return try {
+        // Validation: JSON is properly formatted
+        try {
+            org.json.JSONObject(jsonContent)
+        } catch (e: Exception) {
+            return false
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                resolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(jsonContent.toByteArray())
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (downloadsDir == null) return false
+            if (!downloadsDir.exists()) {
+                if (!downloadsDir.mkdirs()) return false
+            }
+            val file = File(downloadsDir, fileName)
+            file.outputStream().use { outputStream ->
+                outputStream.write(jsonContent.toByteArray())
+            }
+            true
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        false
     }
 }
 

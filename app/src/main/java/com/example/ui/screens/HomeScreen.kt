@@ -64,6 +64,9 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var showVoiceConfirmationDialog by remember { mutableStateOf(false) }
+    var voiceSearchTerm by remember { mutableStateOf("") }
+    var onRetryVoiceSearch by remember { mutableStateOf<(() -> Unit)?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val isDark = isSystemInDarkTheme()
@@ -118,8 +121,8 @@ fun HomeScreen(
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val recognizedText = matches?.firstOrNull() ?: ""
                 if (recognizedText.isNotBlank()) {
-                    searchQuery = recognizedText
-                    onSearch(recognizedText)
+                    voiceSearchTerm = recognizedText
+                    showVoiceConfirmationDialog = true
                 } else {
                     Toast.makeText(context, "No words recognized", Toast.LENGTH_SHORT).show()
                 }
@@ -167,6 +170,10 @@ fun HomeScreen(
         }
     }
 
+    onRetryVoiceSearch = {
+        startListening()
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -181,14 +188,24 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Dictionary",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_neuralex_logo_vector),
+                    contentDescription = "NeuraLex Logo",
+                    modifier = Modifier.size(38.dp)
                 )
-            )
+                Text(
+                    text = "NeuraLex",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+            }
 
             // Crown premium badge button
             Surface(
@@ -287,29 +304,14 @@ fun HomeScreen(
 
             // Word of the Day card
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Word of the Day",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    )
-                    Text(
-                        text = "View all",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple
-                        ),
-                        modifier = Modifier
-                            .clickable { onQuickAction("view_all") }
-                            .padding(4.dp)
-                    )
-                }
+                Text(
+                    text = "Word of the Day",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -571,6 +573,65 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    if (showVoiceConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showVoiceConfirmationDialog = false },
+            title = {
+                Text(
+                    text = "Confirm Voice Search",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Detected Word:",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "\"$voiceSearchTerm\"",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryPurple
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showVoiceConfirmationDialog = false
+                        searchQuery = voiceSearchTerm
+                        onSearch(voiceSearchTerm)
+                    }
+                ) {
+                    Text(text = "Search", color = PrimaryPurple, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            showVoiceConfirmationDialog = false
+                            onRetryVoiceSearch?.invoke()
+                        }
+                    ) {
+                        Text(text = "Retry", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(
+                        onClick = {
+                            showVoiceConfirmationDialog = false
+                        }
+                    ) {
+                        Text(text = "Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        )
     }
 }
 

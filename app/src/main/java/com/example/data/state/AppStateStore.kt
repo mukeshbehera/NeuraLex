@@ -44,7 +44,9 @@ data class AppUiState(
     ),
     val favorites: List<WordObject> = emptyList(),
     val isTestingConnection: Boolean = false,
-    val connectionTestResult: Pair<Boolean, String>? = null // (success, message)
+    val connectionTestResult: Pair<Boolean, String>? = null, // (success, message)
+    val showWordNotFoundDialog: Boolean = false,
+    val lastInvalidWord: String = ""
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -115,6 +117,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     )
 
+    private var lastRandomWord: String? = null
+    private val recentRandomWords = mutableListOf<String>()
+    private var cachedWordsList: List<WordObject> = emptyList()
+    private val validEnglishWords = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
     init {
         val savedTheme = sharedPrefs.getString("theme_mode", "light") ?: "light"
         val savedBaseUrl = sharedPrefs.getString("base_url", "https://api.openai.com/v1") ?: "https://api.openai.com/v1"
@@ -130,9 +137,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
+        // Load local English words dataset once
+        try {
+            application.assets.open("dictionary/english_words.txt").bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    val word = line.trim().lowercase()
+                    if (word.isNotEmpty()) {
+                        validEnglishWords.add(word)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         viewModelScope.launch {
             repository.allFavorites.collect { favs ->
-                _uiState.update { it.copy(favorites = favs) }
+                _uiState.update { state ->
+                    val currentWordSelected = state.selectedWord
+                    val updatedWordSelected = if (currentWordSelected != null) {
+                        currentWordSelected.copy(isFavorite = favs.any { it.word.equals(currentWordSelected.word, ignoreCase = true) })
+                    } else {
+                        null
+                    }
+                    state.copy(
+                        favorites = favs,
+                        selectedWord = updatedWordSelected,
+                        wordOfTheDay = state.wordOfTheDay.copy(isFavorite = favs.any { it.word.equals(state.wordOfTheDay.word, ignoreCase = true) })
+                    )
+                }
             }
         }
         
@@ -146,10 +179,101 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.insertWords(offlineCache.values.toList())
         }
+
+        viewModelScope.launch {
+            repository.allCachedWords.collect { words ->
+                cachedWordsList = words
+                checkAndUpdateWordOfTheDay()
+            }
+        }
     }
 
     // Legacy JSON methods for favorites are no longer needed
     // but we leave skeleton functions since they were used locally.
+
+    fun checkAndUpdateWordOfTheDay() {
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        val savedDate = sharedPrefs.getString("wotd_generated_date", null)
+        
+        if (savedDate == today) {
+            val savedWord = sharedPrefs.getString("wotd_word", null)
+            if (savedWord != null) {
+                val wordObj = WordObject(
+                    word = savedWord,
+                    pronunciation = sharedPrefs.getString("wotd_pronunciation", "") ?: "",
+                    type = sharedPrefs.getString("wotd_type", "") ?: "",
+                    meaning = sharedPrefs.getString("wotd_meaning", "") ?: "",
+                    exampleSentence = sharedPrefs.getString("wotd_example_sentence", "") ?: "",
+                    genZVersion = sharedPrefs.getString("wotd_genz_version", "") ?: "",
+                    synonymsListString = sharedPrefs.getString("wotd_synonyms", "") ?: "",
+                    isFavorite = sharedPrefs.getBoolean("wotd_is_favorite", false),
+                    isWordOfTheDay = true
+                )
+                _uiState.update { it.copy(wordOfTheDay = wordObj) }
+                return
+            }
+        }
+        
+        // Generate a new word from list of all words
+        val allWords = (cachedWordsList + offlineCache.values).distinctBy { it.word.lowercase() }
+        if (allWords.isNotEmpty()) {
+            val currentWotdWord = _uiState.value.wordOfTheDay.word
+            val candidates = if (allWords.size > 1) {
+                allWords.filter { !it.word.equals(currentWotdWord, ignoreCase = true) }
+            } else {
+                allWords
+            }
+            val selected = (if (candidates.isNotEmpty()) candidates else allWords).random()
+            
+            // Save to sharedPrefs
+            sharedPrefs.edit()
+                .putString("wotd_generated_date", today)
+                .putString("wotd_word", selected.word)
+                .putString("wotd_pronunciation", selected.pronunciation)
+                .putString("wotd_type", selected.type)
+                .putString("wotd_meaning", selected.meaning)
+                .putString("wotd_example_sentence", selected.exampleSentence)
+                .putString("wotd_genz_version", selected.genZVersion)
+                .putString("wotd_synonyms", selected.synonymsListString)
+                .apply()
+            
+            _uiState.update { it.copy(wordOfTheDay = selected.copy(isWordOfTheDay = true)) }
+        }
+    }
+
+    fun getRandomWord(): String? {
+        val allWords = (cachedWordsList + offlineCache.values).distinctBy { it.word.lowercase() }
+        if (allWords.isEmpty()) {
+            android.widget.Toast.makeText(getApplication(), "No words available.", android.widget.Toast.LENGTH_SHORT).show()
+            return null
+        }
+        val candidates = if (allWords.size > 1) {
+            val computedHistorySize = ((allWords.size - 1) / 2).coerceAtLeast(1).coerceAtMost(15)
+            
+            // Trim current history to maximum allowed size before filtering
+            while (recentRandomWords.size > computedHistorySize) {
+                recentRandomWords.removeAt(0)
+            }
+            
+            val filtered = allWords.filter { wordObj -> 
+                !recentRandomWords.any { it.equals(wordObj.word, ignoreCase = true) } 
+            }
+            if (filtered.isNotEmpty()) filtered else allWords
+        } else {
+            allWords
+        }
+        val selected = candidates.random()
+        lastRandomWord = selected.word
+        
+        // Add selected word to history and maintain size
+        recentRandomWords.add(selected.word)
+        val computedHistorySizeOfNewList = ((allWords.size - 1) / 2).coerceAtLeast(1).coerceAtMost(15)
+        while (recentRandomWords.size > computedHistorySizeOfNewList) {
+            recentRandomWords.removeAt(0)
+        }
+        
+        return selected.word
+    }
 
     fun navigateTo(screen: Screen) {
         _uiState.update { state ->
@@ -249,7 +373,74 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(connectionTestResult = null) }
     }
 
+    fun dismissWordNotFoundDialog() {
+        _uiState.update { it.copy(showWordNotFoundDialog = false) }
+    }
+
+    fun isValidWord(word: String): Boolean {
+        val normalized = word.trim().lowercase()
+        if (normalized.isEmpty()) return false
+        
+        // 1. Direct match
+        if (validEnglishWords.contains(normalized)) return true
+        if (offlineCache.containsKey(normalized)) return true
+        
+        // 2. Check simple inflections
+        
+        // Plurals or 3rd person singular -s / -es
+        if (normalized.endsWith("s")) {
+            val root1 = normalized.dropLast(1)
+            if (validEnglishWords.contains(root1) || offlineCache.containsKey(root1)) return true
+            
+            if (normalized.endsWith("es")) {
+                val root2 = normalized.dropLast(2)
+                if (validEnglishWords.contains(root2) || offlineCache.containsKey(root2)) return true
+            }
+        }
+        
+        // Past tense -ed
+        if (normalized.endsWith("ed")) {
+            val root1 = normalized.dropLast(2)
+            if (validEnglishWords.contains(root1) || offlineCache.containsKey(root1)) return true
+            
+            val root2 = normalized.dropLast(1)
+            if (validEnglishWords.contains(root2) || offlineCache.containsKey(root2)) return true
+            
+            if (root1.length > 1 && root1[root1.length - 1] == root1[root1.length - 2]) {
+                val rootDouble = root1.dropLast(1)
+                if (validEnglishWords.contains(rootDouble) || offlineCache.containsKey(rootDouble)) return true
+            }
+        }
+        
+        // Present participle -ing
+        if (normalized.endsWith("ing")) {
+            val root1 = normalized.dropLast(3)
+            if (validEnglishWords.contains(root1) || offlineCache.containsKey(root1)) return true
+            
+            val root2 = root1 + "e"
+            if (validEnglishWords.contains(root2) || offlineCache.containsKey(root2)) return true
+            
+            if (root1.length > 1 && root1[root1.length - 1] == root1[root1.length - 2]) {
+                val rootDouble = root1.dropLast(1)
+                if (validEnglishWords.contains(rootDouble) || offlineCache.containsKey(rootDouble)) return true
+            }
+        }
+        
+        return false
+    }
+
     fun searchWord(query: String): Boolean {
+        val trimmedWord = query.trim().lowercase()
+        if (!isValidWord(trimmedWord)) {
+            _uiState.update { state ->
+                state.copy(
+                    showWordNotFoundDialog = true,
+                    lastInvalidWord = query
+                )
+            }
+            return false
+        }
+
         viewModelScope.launch {
             repository.insertHistory(query)
             
@@ -378,41 +569,67 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteSearchHistoryEntry(query: String) {
+        viewModelScope.launch {
+            repository.deleteHistoryEntry(query)
+        }
+    }
+
+    fun deleteSearchHistoryEntries(queries: List<String>) {
+        viewModelScope.launch {
+            queries.forEach { query ->
+                repository.deleteHistoryEntry(query)
+            }
+        }
+    }
+
     fun importFavoritesFromJson(json: String): Pair<Boolean, String> {
         val trimmedJson = json.trim()
         if (trimmedJson.isEmpty()) {
-            return Pair(false, "Import failed: Backup data is blank or empty.")
+            return Pair(false, "Import failed. Invalid file")
         }
         return try {
-            val jsonArray = if (trimmedJson.startsWith("{")) {
-                val jsonObj = JSONObject(trimmedJson)
-                if (jsonObj.has("favorites")) {
-                    jsonObj.getJSONArray("favorites")
-                } else if (jsonObj.has("words")) {
-                    jsonObj.getJSONArray("words")
-                } else {
-                    return Pair(false, "Import failed: JSON object root must contain a 'favorites' or 'words' array.")
-                }
-            } else {
-                JSONArray(trimmedJson)
+            val rootObj = try {
+                JSONObject(trimmedJson)
+            } catch (e: Exception) {
+                return Pair(false, "Import failed. Invalid file")
             }
 
-            if (jsonArray.length() == 0) {
-                return Pair(false, "Import failed: Backup JSON array is empty.")
+            // Expected schema validation
+            if (!rootObj.has("appName") || rootObj.optString("appName") != "NeuraLex" || !rootObj.has("favorites")) {
+                return Pair(false, "Import failed. Invalid file")
             }
 
+            val jsonArray = rootObj.getJSONArray("favorites")
             val list = mutableListOf<WordObject>()
-            var skippedCount = 0
+
             for (i in 0 until jsonArray.length()) {
                 val jsonObj = jsonArray.optJSONObject(i)
                 if (jsonObj == null) {
-                    skippedCount++
-                    continue
+                    return Pair(false, "Import failed. Invalid file") // corrupt record present
                 }
                 val wordVal = jsonObj.optString("word", "").trim()
-                if (wordVal.isEmpty()) {
-                    skippedCount++
+                val meaningVal = jsonObj.optString("meaning", "").trim()
+                if (wordVal.isEmpty() || meaningVal.isEmpty()) {
+                    return Pair(false, "Import failed. Invalid file") // corrupt record present
+                }
+
+                // Skip duplicate favorites safely
+                val exists = _uiState.value.favorites.any { it.word.equals(wordVal, ignoreCase = true) }
+                if (exists) {
                     continue
+                }
+
+                val synonymsArray = jsonObj.optJSONArray("synonyms")
+                val synonymsListStr = if (synonymsArray != null) {
+                    val syns = mutableListOf<String>()
+                    for (j in 0 until synonymsArray.length()) {
+                        val s = synonymsArray.optString(j, "").trim()
+                        if (s.isNotEmpty()) syns.add(s)
+                    }
+                    syns.joinToString(", ")
+                } else {
+                    jsonObj.optString("synonymsListString", "").trim()
                 }
 
                 list.add(
@@ -420,39 +637,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         word = wordVal,
                         pronunciation = jsonObj.optString("pronunciation", "").trim(),
                         type = jsonObj.optString("type", "noun").trim(),
-                        meaning = jsonObj.optString("meaning", "").trim(),
+                        meaning = meaningVal,
                         exampleSentence = jsonObj.optString("exampleSentence", "").trim(),
                         genZVersion = jsonObj.optString("genZVersion", "").trim(),
-                        synonymsListString = jsonObj.optString("synonymsListString", "").trim(),
-                        isFavorite = true, // Ensure favorite status is persistent when imported
+                        synonymsListString = synonymsListStr,
+                        isFavorite = true,
                         isWordOfTheDay = jsonObj.optBoolean("isWordOfTheDay", false),
                         timestampAdded = jsonObj.optLong("timestampAdded", System.currentTimeMillis())
                     )
                 )
             }
 
-            if (list.isEmpty()) {
-                return Pair(false, "Import failed: No valid favorite words found in the backup file structure.")
+            if (list.isNotEmpty()) {
+                viewModelScope.launch {
+                    repository.insertWords(list)
+                }
             }
 
-            viewModelScope.launch {
-                repository.insertWords(list)
-            }
-
-            val msg = if (skippedCount > 0) {
-                "${list.size} favorite words imported successfully ($skippedCount invalid items skipped)."
-            } else {
-                "All ${list.size} favorite words imported successfully."
-            }
-            Pair(true, msg)
+            Pair(true, "Successfully imported")
         } catch (e: Exception) {
-            Pair(false, "Import failed: ${e.localizedMessage ?: "Invalid JSON syntax context"}")
+            Pair(false, "Import failed. Invalid file")
         }
     }
 
     fun exportFavoritesToJson(): String {
         val favs = _uiState.value.favorites
         return try {
+            val root = JSONObject()
+            root.put("appName", "NeuraLex")
+            root.put("version", 1)
+
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+            sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            root.put("exportedAt", sdf.format(java.util.Date()))
+
             val jsonArray = JSONArray()
             favs.forEach { word ->
                 val jsonObj = JSONObject().apply {
@@ -463,15 +681,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     put("exampleSentence", word.exampleSentence)
                     put("genZVersion", word.genZVersion)
                     put("synonymsListString", word.synonymsListString)
+
+                    val synsArray = JSONArray()
+                    word.synonyms.forEach { synsArray.put(it) }
+                    put("synonyms", synsArray)
+
                     put("isFavorite", word.isFavorite)
                     put("isWordOfTheDay", word.isWordOfTheDay)
                     put("timestampAdded", word.timestampAdded)
                 }
                 jsonArray.put(jsonObj)
             }
-            jsonArray.toString(2)
+            root.put("favorites", jsonArray)
+            root.toString(2)
         } catch (e: Exception) {
-            "[]"
+            "{}"
         }
     }
 }
