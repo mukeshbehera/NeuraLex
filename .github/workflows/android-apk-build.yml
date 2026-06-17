@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - main
+      - hotfix/*
+      - fix/*
     tags:
       - 'V*'
   pull_request:
     branches:
       - main
+      - hotfix/*
+      - fix/*
   release:
     types: [published]
   workflow_dispatch:

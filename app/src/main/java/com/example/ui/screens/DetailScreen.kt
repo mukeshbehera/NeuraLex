@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.WordObject
 import com.example.ui.components.SynonymTag
+import com.example.ui.components.glassBackground
+import com.example.ui.components.GlassContainer
 import com.example.ui.theme.BorderColorDark
 import com.example.ui.theme.BorderColorLight
 import com.example.ui.theme.LightPurple
@@ -260,16 +262,11 @@ fun DetailScreen(
                 Spacer(modifier = Modifier.height(28.dp))
 
                 if (isError) {
-                    Card(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 16.dp)
-                            .shadow(2.dp, RoundedCornerShape(18.dp)),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.4f))
+                            .glassBackground(shape = RoundedCornerShape(18.dp), elevation = 4.dp, opaque = true)
                     ) {
                         Column(
                             modifier = Modifier
@@ -330,16 +327,11 @@ fun DetailScreen(
                     }
 
                     Column(modifier = sectionModifier) {
-                        // Meaning Block Section with soft card background and purple accent lines
-                        Card(
+                        // Meaning Block Section with glass card background
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .shadow(2.dp, RoundedCornerShape(18.dp)),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            border = BorderStroke(1.dp, if (isDark) BorderColorDark else BorderColorLight)
+                                .glassBackground(shape = RoundedCornerShape(18.dp), elevation = 4.dp, opaque = true)
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -382,15 +374,10 @@ fun DetailScreen(
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // Example Sentence section
-                        Card(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .shadow(2.dp, RoundedCornerShape(18.dp)),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            border = BorderStroke(1.dp, if (isDark) BorderColorDark else BorderColorLight)
+                                .glassBackground(shape = RoundedCornerShape(18.dp), elevation = 4.dp, opaque = true)
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -552,21 +539,10 @@ fun DetailScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .navigationBarsPadding()
         ) {
-            Surface(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(
-                        elevation = 16.dp,
-                        shape = RoundedCornerShape(24.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.25f),
-                        spotColor = Color.Black.copy(alpha = 0.35f)
-                    ),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = (if (isDark) BorderColorDark else BorderColorLight).copy(alpha = 0.8f)
-                )
+                    .glassBackground(shape = RoundedCornerShape(24.dp), elevation = 12.dp, opaque = true)
             ) {
                 Row(
                     modifier = Modifier

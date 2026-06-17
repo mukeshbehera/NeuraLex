@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.WordObject
 import com.example.data.state.AppUiState
 import com.example.ui.components.NeuraLexCard
+import com.example.ui.components.glassBackground
+import com.example.ui.components.GlassContainer
 import com.example.ui.theme.BorderColorLight
 import com.example.ui.theme.BorderColorDark
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -459,7 +461,7 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(18.dp))
                             .border(1.dp, if (isDark) BorderColorDark else BorderColorLight, RoundedCornerShape(18.dp))
-                            .background(MaterialTheme.colorScheme.surface)
+                            .glassBackground(shape = RoundedCornerShape(18.dp), opaque = true)
                     ) {
                         uiState.searchHistory.forEachIndexed { index, term ->
                             Row(
@@ -535,9 +537,7 @@ fun HomeScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(0.9f)
-                                .shadow(2.dp, RoundedCornerShape(18.dp))
-                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(18.dp))
-                                .border(1.dp, if (isDark) BorderColorDark else BorderColorLight, RoundedCornerShape(18.dp))
+                                .glassBackground(shape = RoundedCornerShape(18.dp), elevation = 4.dp)
                                 .clickable { onQuickAction(action.id) }
                                 .padding(8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,

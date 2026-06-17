@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.WordObject
 import com.example.ui.components.NeuraLexCard
+import com.example.ui.components.glassBackground
 import com.example.ui.theme.LightPurple
 import com.example.ui.theme.PrimaryPurple
 import com.example.ui.theme.SecondaryTextLight
@@ -351,10 +352,16 @@ fun HistoryScreen(
             ) {
                 items(historyTerms, key = { it }) { term ->
                     val isSelected = selectedTerms.contains(term)
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .combinedClickable(
+                            .padding(vertical = 4.dp)
+                            .glassBackground(shape = RoundedCornerShape(16.dp), elevation = 2.dp, opaque = true)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
                                 onLongClick = {
                                     if (!isSelectionMode) {
                                         isSelectionMode = true
@@ -449,7 +456,7 @@ fun HistoryScreen(
                             }
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                }
                 }
             }
         }
