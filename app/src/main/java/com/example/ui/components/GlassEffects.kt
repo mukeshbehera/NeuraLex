@@ -18,17 +18,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 // Glass color constants for light and dark themes
-private val GlassLightBg = Color(0xE6FFFFFF)        // 90% white
+// Semi-transparent backgrounds let the underlying gradient/wallpaper show through for a true frosted look
+private val GlassLightBg = Color(0xB3FFFFFF)        // 70% white
 private val GlassLightBorder = Color(0x1A000000)     // 10% black
 private val GlassLightShadow = Color(0x0A000000)     // 4% black
 
-private val GlassDarkBg = Color(0x1AFFFFFF)          // 10% white
-private val GlassDarkBorder = Color(0x26FFFFFF)      // 15% white
+private val GlassDarkBg = Color(0x14FFFFFF)          // 8% white
+private val GlassDarkBorder = Color(0x1AFFFFFF)      // 10% white
 private val GlassDarkShadow = Color(0x4C000000)      // 30% black
 
 // More opaque glass for cards with content that needs readability
-private val GlassCardLightBg = Color(0xF2FFFFFF)     // 95% white
-private val GlassCardDarkBg = Color(0x24FFFFFF)      // 14% white
+private val GlassCardLightBg = Color(0xCCFFFFFF)     // 80% white
+private val GlassCardDarkBg = Color(0x1EFFFFFF)      // 12% white
 
 /**
  * Applies glassmorphism styling to a composable: semi-transparent background,
