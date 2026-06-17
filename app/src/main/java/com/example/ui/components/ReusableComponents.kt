@@ -150,31 +150,23 @@ fun NeuraLexCard(
     modifier: Modifier = Modifier,
     borderColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
-    elevation: Dp = 2.dp,
+    elevation: Dp = 4.dp,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val cardModifier = if (onClick != null) {
         modifier
             .fillMaxWidth()
-            .shadow(elevation, RoundedCornerShape(22.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(22.dp))
-            .clip(RoundedCornerShape(22.dp))
+            .glassCard()
             .clickable(onClick = onClick)
     } else {
         modifier
             .fillMaxWidth()
-            .shadow(elevation, RoundedCornerShape(22.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(22.dp))
-            .clip(RoundedCornerShape(22.dp))
+            .glassCard()
     }
 
-    Card(
+    Column(
         modifier = cardModifier,
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
-        ),
         content = content
     )
 }
@@ -484,18 +476,17 @@ fun NeuraLexBottomBar(
         TabItem("Settings", "settings", Icons.Default.Settings)
     )
 
-    Surface(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .navigationBarsPadding()
+            .glassBackground(shape = RoundedCornerShape(32.dp), elevation = 12.dp, opaque = true)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(vertical = 10.dp),
+                .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -506,9 +497,9 @@ fun NeuraLexBottomBar(
 
                 Column(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .clickable { onTabSelected(item.id) }
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(

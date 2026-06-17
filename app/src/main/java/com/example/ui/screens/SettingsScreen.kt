@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.state.AppUiState
+import com.example.ui.components.glassBackground
 import com.example.ui.theme.LightPurple
 import com.example.ui.theme.PrimaryPurple
 import com.example.ui.theme.SecondaryTextLight
@@ -151,12 +152,10 @@ fun SettingsScreen(
                     )
                 }
 
-                Surface(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface
+                        .glassBackground(shape = RoundedCornerShape(16.dp), elevation = 4.dp, opaque = true)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Text(
@@ -242,12 +241,10 @@ fun SettingsScreen(
                     modifier = Modifier.padding(bottom = 12.dp, start = 28.dp)
                 )
 
-                Surface(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface
+                        .glassBackground(shape = RoundedCornerShape(16.dp), elevation = 4.dp, opaque = true)
                 ) {
                     Column(
                         modifier = Modifier.padding(18.dp),
@@ -399,12 +396,10 @@ fun SettingsScreen(
                     modifier = Modifier.padding(bottom = 12.dp, start = 28.dp)
                 )
 
-                Surface(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface
+                        .glassBackground(shape = RoundedCornerShape(16.dp), elevation = 4.dp, opaque = true)
                 ) {
                     Column(modifier = Modifier.padding(6.dp)) {
                         // Export Favorites row
