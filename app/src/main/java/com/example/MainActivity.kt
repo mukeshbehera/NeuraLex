@@ -45,7 +45,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.data.state.AppViewModel
-import com.example.ui.components.NeuraLexBottomBar
+import com.example.ui.components.LiquidGlassNavBar
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.navigation.Route
 import com.example.ui.screens.BookmarksScreen
 import com.example.ui.screens.DetailScreen
@@ -113,6 +115,8 @@ class MainActivity : ComponentActivity() {
                         Route.Settings.path
                     )
                 
+                val screenBackdrop = rememberLayerBackdrop()
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
@@ -124,7 +128,7 @@ class MainActivity : ComponentActivity() {
                                 Route.Settings.path -> "settings"
                                 else -> "home"
                             }
-                            NeuraLexBottomBar(
+                            LiquidGlassNavBar(
                                 currentTab = activeTabId,
                                 onTabSelected = { tabId ->
                                     val targetRoute = when (tabId) {
@@ -143,7 +147,8 @@ class MainActivity : ComponentActivity() {
                                             restoreState = true
                                         }
                                     }
-                                }
+                                },
+                                backdrop = screenBackdrop
                             )
                         }
                     }
@@ -152,6 +157,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
+                            .layerBackdrop(screenBackdrop)
                     ) {
                         if (uiState.showWordNotFoundDialog) {
                             androidx.compose.material3.AlertDialog(
