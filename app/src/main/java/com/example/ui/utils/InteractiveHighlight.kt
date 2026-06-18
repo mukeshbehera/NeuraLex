@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.util.fastCoerceIn
 import com.kyant.backdrop.RuntimeShader
 import com.kyant.backdrop.asComposeShader
 import com.kyant.backdrop.isRuntimeShaderSupported
@@ -64,8 +63,8 @@ half4 main(float2 coord) {
                     setFloatUniform("radius", size.minDimension * 1.5f)
                     setFloatUniform(
                         "position",
-                        position.x.fastCoerceIn(0f, size.width),
-                        position.y.fastCoerceIn(0f, size.height)
+                        position.x.coerceIn(0f, size.width),
+                        position.y.coerceIn(0f, size.height)
                     )
                 }
                 drawRect(ShaderBrush(shader.asComposeShader()), blendMode = BlendMode.Plus)
