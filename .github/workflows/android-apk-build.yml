@@ -6,6 +6,7 @@ on:
       - main
       - hotfix/*
       - fix/*
+      - feature/*
     tags:
       - 'V*'
   pull_request:
@@ -13,6 +14,7 @@ on:
       - main
       - hotfix/*
       - fix/*
+      - feature/*
   release:
     types: [published]
   workflow_dispatch:
